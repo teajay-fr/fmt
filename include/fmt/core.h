@@ -188,10 +188,6 @@
     (defined(_MSVC_LANG) && _MSVC_LANG > 201402L && _MSC_VER >= 1910)
 # include <string_view>
 # define FMT_USE_STD_STRING_VIEW
-#elif (FMT_HAS_INCLUDE(<experimental/string_view>) && \
-       __cplusplus >= 201402L)
-# include <experimental/string_view>
-# define FMT_USE_EXPERIMENTAL_STRING_VIEW
 #endif
 
 // std::result_of is defined in <functional> in gcc 4.4.
