@@ -8,24 +8,23 @@
 #ifndef FMT_MOCK_ALLOCATOR_H_
 #define FMT_MOCK_ALLOCATOR_H_
 
+#include "fmt/format.h"
 #include "gmock.h"
 
-template <typename T>
-class MockAllocator {
+template <typename T> class mock_allocator {
  public:
-  MockAllocator() {}
-  MockAllocator(const MockAllocator &) {}
+  mock_allocator() {}
+  mock_allocator(const mock_allocator&) {}
   typedef T value_type;
-  MOCK_METHOD1_T(allocate, T* (std::size_t n));
-  MOCK_METHOD2_T(deallocate, void (T* p, std::size_t n));
+  MOCK_METHOD1_T(allocate, T*(std::size_t n));
+  MOCK_METHOD2_T(deallocate, void(T* p, std::size_t n));
 };
 
-template <typename Allocator>
-class AllocatorRef {
+template <typename Allocator> class allocator_ref {
  private:
-  Allocator *alloc_;
+  Allocator* alloc_;
 
-  void move(AllocatorRef &other) {
+  void move(allocator_ref& other) {
     alloc_ = other.alloc_;
     other.alloc_ = nullptr;
   }
@@ -33,27 +32,27 @@ class AllocatorRef {
  public:
   typedef typename Allocator::value_type value_type;
 
-  explicit AllocatorRef(Allocator *alloc = nullptr) : alloc_(alloc) {}
+  explicit allocator_ref(Allocator* alloc = nullptr) : alloc_(alloc) {}
 
-  AllocatorRef(const AllocatorRef &other) : alloc_(other.alloc_) {}
-  AllocatorRef(AllocatorRef &&other) { move(other); }
+  allocator_ref(const allocator_ref& other) : alloc_(other.alloc_) {}
+  allocator_ref(allocator_ref&& other) { move(other); }
 
-  AllocatorRef& operator=(AllocatorRef &&other) {
+  allocator_ref& operator=(allocator_ref&& other) {
     assert(this != &other);
     move(other);
     return *this;
   }
 
-  AllocatorRef& operator=(const AllocatorRef &other) {
+  allocator_ref& operator=(const allocator_ref& other) {
     alloc_ = other.alloc_;
     return *this;
   }
 
  public:
-  Allocator *get() const { return alloc_; }
+  Allocator* get() const { return alloc_; }
 
   value_type* allocate(std::size_t n) {
-    return fmt::internal::allocate(*alloc_, n);
+    return std::allocator_traits<Allocator>::allocate(*alloc_, n);
   }
   void deallocate(value_type* p, std::size_t n) { alloc_->deallocate(p, n); }
 };
