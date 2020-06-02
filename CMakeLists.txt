@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.1.0)
+include(bootstrap.cmake)
+cmake_minimum_required(VERSION 3.17)
 
 # Use newer policies if available, up to most recent tested version of CMake.
 if(${CMAKE_VERSION} VERSION_LESS 3.11)
@@ -63,16 +64,19 @@ option(FMT_OS "Include core requiring OS (Windows/Posix) " ON)
 project(FMT CXX)
 
 # Get version from core.h
-file(READ include/fmt/core.h core_h)
-if (NOT core_h MATCHES "FMT_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])")
-  message(FATAL_ERROR "Cannot get FMT_VERSION from core.h.")
-endif ()
-# Use math to skip leading zeros if any.
-math(EXPR CPACK_PACKAGE_VERSION_MAJOR ${CMAKE_MATCH_1})
-math(EXPR CPACK_PACKAGE_VERSION_MINOR ${CMAKE_MATCH_2})
-math(EXPR CPACK_PACKAGE_VERSION_PATCH ${CMAKE_MATCH_3})
-join(FMT_VERSION ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.
-                 ${CPACK_PACKAGE_VERSION_PATCH})
+#file(READ include/fmt/core.h core_h)
+#if (NOT core_h MATCHES "FMT_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])")
+#  message(FATAL_ERROR "Cannot get FMT_VERSION from core.h.")
+#endif ()
+## Use math to skip leading zeros if any.
+#math(EXPR CPACK_PACKAGE_VERSION_MAJOR ${CMAKE_MATCH_1})
+#math(EXPR CPACK_PACKAGE_VERSION_MINOR ${CMAKE_MATCH_2})
+#math(EXPR CPACK_PACKAGE_VERSION_PATCH ${CMAKE_MATCH_3})
+#join(FMT_VERSION ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.
+#                 ${CPACK_PACKAGE_VERSION_PATCH})
+include(Version)
+get_version_info()
+set(FMT_VERSION ${PROJECT_VERSION})
 message(STATUS "Version: ${FMT_VERSION}")
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -208,7 +212,7 @@ target_include_directories(fmt PUBLIC
 set(FMT_DEBUG_POSTFIX d CACHE STRING "Debug library postfix.")
 
 set_target_properties(fmt PROPERTIES
-  VERSION ${FMT_VERSION} SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}
+  VERSION ${FMT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR}
   DEBUG_POSTFIX "${FMT_DEBUG_POSTFIX}")
 
 # Set FMT_LIB_NAME for pkg-config fmt.pc. We cannot use the OUTPUT_NAME target
@@ -317,23 +321,25 @@ if (FMT_FUZZ)
   target_compile_definitions(fmt PUBLIC FMT_FUZZ)
 endif ()
 
-set(gitignore ${PROJECT_SOURCE_DIR}/.gitignore)
-if (MASTER_PROJECT AND EXISTS ${gitignore})
-  # Get the list of ignored files from .gitignore.
-  file (STRINGS ${gitignore} lines)
-  list(REMOVE_ITEM lines /doc/html)
-  foreach (line ${lines})
-    string(REPLACE "." "[.]" line "${line}")
-    string(REPLACE "*" ".*" line "${line}")
-    set(ignored_files ${ignored_files} "${line}$" "${line}/")
-  endforeach ()
-  set(ignored_files ${ignored_files}
-    /.git /breathe /format-benchmark sphinx/ .buildinfo .doctrees)
-
-  set(CPACK_SOURCE_GENERATOR ZIP)
-  set(CPACK_SOURCE_IGNORE_FILES ${ignored_files})
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME fmt-${FMT_VERSION})
-  set(CPACK_PACKAGE_NAME fmt)
-  set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.rst)
-  include(CPack)
-endif ()
+#set(gitignore ${PROJECT_SOURCE_DIR}/.gitignore)
+#if (MASTER_PROJECT AND EXISTS ${gitignore})
+#  # Get the list of ignored files from .gitignore.
+#  file (STRINGS ${gitignore} lines)
+#  list(REMOVE_ITEM lines /doc/html)
+#  foreach (line ${lines})
+#    string(REPLACE "." "[.]" line "${line}")
+#    string(REPLACE "*" ".*" line "${line}")
+#    set(ignored_files ${ignored_files} "${line}$" "${line}/")
+#  endforeach ()
+#  set(ignored_files ${ignored_files}
+#    /.git /breathe /format-benchmark sphinx/ .buildinfo .doctrees)
+#
+#  set(CPACK_SOURCE_GENERATOR ZIP)
+#  set(CPACK_SOURCE_IGNORE_FILES ${ignored_files})
+#  set(CPACK_SOURCE_PACKAGE_FILE_NAME fmt-${FMT_VERSION})
+#  set(CPACK_PACKAGE_NAME fmt)
+#  set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.rst)
+#  include(CPack)
+#endif ()
+include(Packaging)
+setup_package(NAME ${PROJECT_NAME} TARGETS fmt fmt-header-only CHANNEL extern)
