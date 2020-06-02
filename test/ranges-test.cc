@@ -10,6 +10,7 @@
 // {fmt} support for ranges, containers and types tuple interface.
 
 #include "fmt/ranges.h"
+
 #include "gtest.h"
 
 // Check if  'if constexpr' is supported.
@@ -44,9 +45,10 @@ TEST(RangesTest, FormatPair) {
 }
 
 TEST(RangesTest, FormatTuple) {
-  std::tuple<int64_t, float, std::string, char> tu1{42, 1.5f, "this is tuple",
-                                                    'i'};
-  EXPECT_EQ("(42, 1.5, \"this is tuple\", 'i')", fmt::format("{}", tu1));
+  std::tuple<int64_t, float, std::string, char> t{42, 1.5f, "this is tuple",
+                                                  'i'};
+  EXPECT_EQ("(42, 1.5, \"this is tuple\", 'i')", fmt::format("{}", t));
+  EXPECT_EQ("()", fmt::format("{}", std::tuple<>()));
 }
 
 TEST(RangesTest, JoinTuple) {
@@ -68,10 +70,16 @@ TEST(RangesTest, JoinTuple) {
   EXPECT_EQ("4.0", fmt::format("{}", fmt::join(t4, "/")));
 }
 
+TEST(RangesTest, JoinInitializerList) {
+  EXPECT_EQ("1, 2, 3", fmt::format("{}", fmt::join({1, 2, 3}, ", ")));
+  EXPECT_EQ("fmt rocks !",
+            fmt::format("{}", fmt::join({"fmt", "rocks", "!"}, " ")));
+}
+
 struct my_struct {
   int32_t i;
   std::string str;  // can throw
-  template <std::size_t N> decltype(auto) get() const noexcept {
+  template <size_t N> decltype(auto) get() const noexcept {
     if constexpr (N == 0)
       return i;
     else if constexpr (N == 1)
@@ -79,16 +87,15 @@ struct my_struct {
   }
 };
 
-template <std::size_t N> decltype(auto) get(const my_struct& s) noexcept {
+template <size_t N> decltype(auto) get(const my_struct& s) noexcept {
   return s.get<N>();
 }
 
 namespace std {
 
-template <>
-struct tuple_size<my_struct> : std::integral_constant<std::size_t, 2> {};
+template <> struct tuple_size<my_struct> : std::integral_constant<size_t, 2> {};
 
-template <std::size_t N> struct tuple_element<N, my_struct> {
+template <size_t N> struct tuple_element<N, my_struct> {
   using type = decltype(std::declval<my_struct>().get<N>());
 };
 
@@ -132,3 +139,17 @@ TEST(RangesTest, FormatStringLike) {
   EXPECT_EQ("foo", fmt::format("{}", string_like()));
 }
 #endif  // FMT_USE_STRING_VIEW
+
+struct zstring_sentinel {};
+bool operator==(const char* p, zstring_sentinel) { return *p == '\0'; }
+bool operator!=(const char* p, zstring_sentinel) { return *p != '\0'; }
+struct zstring {
+  const char* p;
+  const char* begin() const { return p; }
+  zstring_sentinel end() const { return {}; }
+};
+TEST(RangesTest, JoinSentinel) {
+  zstring hello{"hello"};
+  EXPECT_EQ("{'h', 'e', 'l', 'l', 'o'}", fmt::format("{}", hello));
+  EXPECT_EQ("h_e_l_l_o", fmt::format("{}", fmt::join(hello, "_")));
+}
